@@ -899,7 +899,7 @@ RunService.RenderStepped:Connect(function()
                     local RaycastResult = workspace:Raycast(Camera.CFrame.Position, Direction * 500, RaycastParams)
 
                     -- Если текущая позиция игрока за стеной, проверяем бектрек
-                    if not RaycastResult or not RaycastResult.Instance:IsDescendantOf(Player.Character) then
+                    if RaycastResult and not RaycastResult.Instance:IsDescendantOf(Player.Character) then
                         local BacktrackPosition = GetBacktrackPosition(Player)
                         if BacktrackPosition then
                             local BacktrackDirection = (BacktrackPosition - Camera.CFrame.Position).unit
@@ -929,8 +929,9 @@ RunService.RenderStepped:Connect(function()
             local Head = ClosestTarget.Character.Head
             -- Наводимся на голову
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Head.Position)
+            -- Добавляем проверку на наличие цели и времени задержки для корректной стрельбы
             mouse1press()
-            task.wait(0.05)
+            task.wait(0.1)  -- Увеличиваем немного время задержки
             mouse1release()
         end
     end
