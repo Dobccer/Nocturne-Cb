@@ -1106,11 +1106,12 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local ESPBacktrackColor = Color3.fromRGB(0, 255, 0) -- Цвет для отображения бектрека
+-- Основной цикл для отображения ESP и бектрека
 RunService.RenderStepped:Connect(function()
     local LocalPlayer = Players.LocalPlayer
     local Camera = workspace.CurrentCamera
 
-    for _, Player in ipairs(Players:GetChildren()) do
+    for _, Player in ipairs(Players:GetPlayers()) do
         if Player.Character and Player ~= LocalPlayer then
             local Character = Player.Character
             local Highlight = Character:FindFirstChild("Highlight") or Instance.new("Highlight", Character)
@@ -1142,26 +1143,28 @@ RunService.RenderStepped:Connect(function()
                 end
             end
 
-            -- Отображение бектрека (исторические позиции)
+            -- Отображение бектрека
             if BackSettings.Enabled and BacktrackData[Player] then
-                for i, BacktrackPosition in ipairs(BacktrackData[Player]) do
-                    local BacktrackHighlight = Instance.new("Part")
-                    BacktrackHighlight.Size = Vector3.new(0.5, 0.5, 0.5)
-                    BacktrackHighlight.Anchored = true
-                    BacktrackHighlight.CanCollide = false
-                    BacktrackHighlight.Position = BacktrackPosition.position
-                    BacktrackHighlight.Color = ESPBacktrackColor
-                    BacktrackHighlight.Parent = workspace
+                for _, BacktrackPosition in ipairs(BacktrackData[Player]) do
+                    local BacktrackPart = Instance.new("Part")
+                    BacktrackPart.Size = Vector3.new(0.2, 0.2, 0.2) -- Размер точки
+                    BacktrackPart.Anchored = true
+                    BacktrackPart.CanCollide = false
+                    BacktrackPart.Position = BacktrackPosition.position
+                    BacktrackPart.Color = ESPBacktrackColor
+                    BacktrackPart.Transparency = 0.5 -- Полупрозрачный цвет для лучшего восприятия
+                    BacktrackPart.Material = Enum.Material.Neon -- Для эффекта свечения
+                    BacktrackPart.Parent = workspace
                     
-                    -- Удаление Highlight'ов через некоторое время
-                    delay(MaxBacktrackTime, function()
-                        if BacktrackHighlight then
-                            BacktrackHighlight:Destroy()
+                    -- Удаление точки через некоторое время
+                    task.delay(MaxBacktrackTime, function()
+                        if BacktrackPart then
+                            BacktrackPart:Destroy()
                         end
                     end)
                 end
             end
         end
     end
-    task.wait()
+    task.wait() -- Увеличено время ожидания для предотвращения фризов интерфейса
 end)
