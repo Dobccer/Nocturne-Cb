@@ -1146,11 +1146,10 @@ RunService.RenderStepped:Connect(function()
             -- Отображение скелета для бектрека
             if ESPSettings.BackTrackChams and BacktrackData[Player] then
                 for _, BacktrackPosition in ipairs(BacktrackData[Player]) do
-                    -- Параметры для рендера скелета
                     local parts = {"Head", "LeftHand", "RightHand", "LeftFoot", "RightFoot", "Torso"} -- Части тела
                     local bodyPositions = {}
 
-                    -- Сохраняем позиции частей тела
+                    -- Получение сохранённых позиций частей тела для бектрека
                     for _, partName in ipairs(parts) do
                         local bodyPart = Character:FindFirstChild(partName)
                         if bodyPart then
@@ -1160,21 +1159,28 @@ RunService.RenderStepped:Connect(function()
 
                     -- Создаем линии между частями тела для рендера скелета
                     local function createSkeletonLine(startPos, endPos)
+                        -- Создаём две точки для линии
                         local Attachment0 = Instance.new("Attachment")
                         local Attachment1 = Instance.new("Attachment")
+                        Attachment0.Parent = workspace.Terrain
+                        Attachment1.Parent = workspace.Terrain
+                        
+                        -- Задаём позиции точек
                         Attachment0.Position = startPos
                         Attachment1.Position = endPos
 
+                        -- Создаем Beam для отображения линии между этими точками
                         local Beam = Instance.new("Beam")
                         Beam.Attachment0 = Attachment0
                         Beam.Attachment1 = Attachment1
                         Beam.Color = ColorSequence.new(ESPBacktrackColor)
                         Beam.Width0 = 0.1 -- Толщина линии
                         Beam.Width1 = 0.1
-                        Beam.Transparency = NumberSequence.new(0.5) -- Прозрачность
+                        Beam.Transparency = NumberSequence.new(0.5) -- Полупрозрачный цвет
+                        Beam.Material = Enum.Material.Neon
                         Beam.Parent = workspace
 
-                        -- Удаляем после времени бектрека
+                        -- Удаляем объекты после времени бектрека
                         task.delay(MaxBacktrackTime, function()
                             if Beam then
                                 Beam:Destroy()
@@ -1184,7 +1190,7 @@ RunService.RenderStepped:Connect(function()
                         end)
                     end
 
-                    -- Связываем линии между частями тела
+                    -- Создаём линии между частями тела для отображения скелета
                     if bodyPositions["Head"] and bodyPositions["Torso"] then
                         createSkeletonLine(bodyPositions["Head"], bodyPositions["Torso"]) -- Голова к торсу
                     end
