@@ -838,20 +838,22 @@ local MaxBacktrackTime = 0.2 -- Максимальное время бектре
 
 -- Обновление позиций игроков для бектрека
 RunService.RenderStepped:Connect(function()
-    for _, Player in ipairs(Players:GetPlayers()) do
-        if Player.Character and Player.Character:FindFirstChild("Head") then
-            local HeadPosition = Player.Character.Head.Position
-            if not BacktrackData[Player] then
-                BacktrackData[Player] = {}
-            end
+    if BackSettings.Enabled == true then -- Проверяем, включен ли бектрек
+        for _, Player in ipairs(Players:GetPlayers()) do
+            if Player.Character and Player.Character:FindFirstChild("Head") then
+                local HeadPosition = Player.Character.Head.Position
+                if not BacktrackData[Player] then
+                    BacktrackData[Player] = {}
+                end
 
-            -- Сохраняем текущую позицию вместе с меткой времени
-            table.insert(BacktrackData[Player], {position = HeadPosition, time = tick()})
+                -- Сохраняем текущую позицию вместе с меткой времени
+                table.insert(BacktrackData[Player], {position = HeadPosition, time = tick()})
 
-            -- Удаление старых позиций
-            for i = #BacktrackData[Player], 1, -1 do
-                if tick() - BacktrackData[Player][i].time > MaxBacktrackTime then
-                    table.remove(BacktrackData[Player], i)
+                -- Удаление старых позиций
+                for i = #BacktrackData[Player], 1, -1 do
+                    if tick() - BacktrackData[Player][i].time > MaxBacktrackTime then
+                        table.remove(BacktrackData[Player], i)
+                    end
                 end
             end
         end
@@ -860,7 +862,7 @@ end)
 
 -- Функция для получения последней доступной позиции из бектрека
 function GetBacktrackPosition(Player)
-    if BacktrackData[Player] then
+    if BackSettings.Enabled == true and BacktrackData[Player] then -- Проверка, включён ли бектрек
         for i = #BacktrackData[Player], 1, -1 do
             local Data = BacktrackData[Player][i]
             if tick() - Data.time <= MaxBacktrackTime then
@@ -900,17 +902,19 @@ RunService.RenderStepped:Connect(function()
 
                     -- Если текущая позиция игрока за стеной, проверяем бектрек
                     if RaycastResult and not RaycastResult.Instance:IsDescendantOf(Player.Character) then
-                        local BacktrackPosition = GetBacktrackPosition(Player)
-                        if BacktrackPosition then
-                            local BacktrackDirection = (BacktrackPosition - Camera.CFrame.Position).unit
-                            local BacktrackRaycastResult = workspace:Raycast(Camera.CFrame.Position, BacktrackDirection * 500, RaycastParams)
+                        if BackSettings.Enabled == true then -- Проверка состояния бектрека
+                            local BacktrackPosition = GetBacktrackPosition(Player)
+                            if BacktrackPosition then
+                                local BacktrackDirection = (BacktrackPosition - Camera.CFrame.Position).unit
+                                local BacktrackRaycastResult = workspace:Raycast(Camera.CFrame.Position, BacktrackDirection * 500, RaycastParams)
 
-                            -- Если бектрек не за стеной, стреляем по позиции из бектрека
-                            if BacktrackRaycastResult and BacktrackRaycastResult.Instance:IsDescendantOf(Player.Character) then
-                                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, BacktrackPosition)
-                                mouse1press()
-                                task.wait(0.05)
-                                mouse1release()
+                                -- Если бектрек не за стеной, стреляем по позиции из бектрека
+                                if BacktrackRaycastResult and BacktrackRaycastResult.Instance:IsDescendantOf(Player.Character) then
+                                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, BacktrackPosition)
+                                    mouse1press()
+                                    task.wait(0.05)
+                                    mouse1release()
+                                end
                             end
                         end
                     else
@@ -929,9 +933,9 @@ RunService.RenderStepped:Connect(function()
             local Head = ClosestTarget.Character.Head
             -- Наводимся на голову
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Head.Position)
-            -- Добавляем проверку на наличие цели и времени задержки для корректной стрельбы
+            -- Стреляем по цели
             mouse1press()
-            task.wait(0.1)  -- Увеличиваем немного время задержки
+            task.wait(0.1)  -- Увеличено время задержки для надёжной стрельбы
             mouse1release()
         end
     end
