@@ -38,9 +38,12 @@ FOVring.Transparency = 1
 FOVring.Color = Color3.fromRGB(200, 200, 200)
 
 local RageSettings = {
-    Enabled = true,
+    Enabled = false,
     TeamCheck = true,
     Smoothing = 0,
+}
+local BackSettings = {
+    Enabled = false,
 }
 
 local AimSettings = {
@@ -78,7 +81,7 @@ local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Library:CreateWindow({
     Name = "Nocturne",
     LoadingTitle = "Loading Script",
-    LoadingSubtitle = "Get onix, get good.",
+    LoadingSubtitle = "Get nocturne, get good.",
     ConfigurationSaving = {
         Enabled = false,
         FolderName = "Nocturne", -- Create a custom folder for your hub/game
@@ -143,13 +146,21 @@ if true then
     do
         --// Combat
 
-        Combat:CreateSection("Ragebot")
+        Combat:CreateSection("Rage")
         Combat:CreateToggle({
             Name = "Ragebot",
             CurrentValue = false,
             Flag = "Ragebot",
             Callback = function(Value)
                 RageSettings.Enabled = true
+            end,
+        })
+        Combat:CreateToggle({
+            Name = "BackTrack",
+            CurrentValue = false,
+            Flag = "BackTrack",
+            Callback = function(Value)
+                BackSettings.Enabled = true
             end,
         })
 
