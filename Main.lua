@@ -153,7 +153,7 @@ if true then
             CurrentValue = false,
             Flag = "Ragebot",
             Callback = function(Value)
-                RageSettings.Enabled = true
+                RageSettings.Enabled = Value
             end,
         })
         Combat:CreateToggle({
@@ -161,7 +161,7 @@ if true then
             CurrentValue = false,
             Flag = "BackTrack",
             Callback = function(Value)
-                BackSettings.Enabled = true
+                BackSettings.Enabled = Value
             end,
         })
 
@@ -171,7 +171,7 @@ if true then
             CurrentValue = false,
             Flag = "Aimbot",
             Callback = function(Value)
-                AimSettings.Enabled = true
+                AimSettings.Enabled = Value
             end,
         })
 
@@ -1143,25 +1143,63 @@ RunService.RenderStepped:Connect(function()
                 end
             end
 
-            -- Отображение бектрека
-            if BackSettings.Enabled and BacktrackData[Player] then
+            -- Отображение скелета для бектрека
+            if ESPSettings.BackTrackChams and BacktrackData[Player] then
                 for _, BacktrackPosition in ipairs(BacktrackData[Player]) do
-                    local BacktrackPart = Instance.new("Part")
-                    BacktrackPart.Size = Vector3.new(0.2, 0.2, 0.2) -- Размер точки
-                    BacktrackPart.Anchored = true
-                    BacktrackPart.CanCollide = false
-                    BacktrackPart.Position = BacktrackPosition.position
-                    BacktrackPart.Color = ESPBacktrackColor
-                    BacktrackPart.Transparency = 0.5 -- Полупрозрачный цвет для лучшего восприятия
-                    BacktrackPart.Material = Enum.Material.Neon -- Для эффекта свечения
-                    BacktrackPart.Parent = workspace
-                    
-                    -- Удаление точки через некоторое время
-                    task.delay(MaxBacktrackTime, function()
-                        if BacktrackPart then
-                            BacktrackPart:Destroy()
+                    -- Параметры для рендера скелета
+                    local parts = {"Head", "LeftHand", "RightHand", "LeftFoot", "RightFoot", "Torso"} -- Части тела
+                    local bodyPositions = {}
+
+                    -- Сохраняем позиции частей тела
+                    for _, partName in ipairs(parts) do
+                        local bodyPart = Character:FindFirstChild(partName)
+                        if bodyPart then
+                            bodyPositions[partName] = bodyPart.Position
                         end
-                    end)
+                    end
+
+                    -- Создаем линии между частями тела для рендера скелета
+                    local function createSkeletonLine(startPos, endPos)
+                        local Attachment0 = Instance.new("Attachment")
+                        local Attachment1 = Instance.new("Attachment")
+                        Attachment0.Position = startPos
+                        Attachment1.Position = endPos
+
+                        local Beam = Instance.new("Beam")
+                        Beam.Attachment0 = Attachment0
+                        Beam.Attachment1 = Attachment1
+                        Beam.Color = ColorSequence.new(ESPBacktrackColor)
+                        Beam.Width0 = 0.1 -- Толщина линии
+                        Beam.Width1 = 0.1
+                        Beam.Transparency = NumberSequence.new(0.5) -- Прозрачность
+                        Beam.Parent = workspace
+
+                        -- Удаляем после времени бектрека
+                        task.delay(MaxBacktrackTime, function()
+                            if Beam then
+                                Beam:Destroy()
+                                Attachment0:Destroy()
+                                Attachment1:Destroy()
+                            end
+                        end)
+                    end
+
+                    -- Связываем линии между частями тела
+                    if bodyPositions["Head"] and bodyPositions["Torso"] then
+                        createSkeletonLine(bodyPositions["Head"], bodyPositions["Torso"]) -- Голова к торсу
+                    end
+                    if bodyPositions["Torso"] and bodyPositions["LeftHand"] then
+                        createSkeletonLine(bodyPositions["Torso"], bodyPositions["LeftHand"]) -- Торс к левой руке
+                    end
+                    if bodyPositions["Torso"] and bodyPositions["RightHand"] then
+                        createSkeletonLine(bodyPositions["Torso"], bodyPositions["RightHand"]) -- Торс к правой руке
+                    end
+                    if bodyPositions["Torso"] and bodyPositions["LeftFoot"] then
+                        createSkeletonLine(bodyPositions["Torso"], bodyPositions["LeftFoot"]) -- Торс к левой ноге
+                    end
+                    if bodyPositions["Torso"] and bodyPositions["RightFoot"] then
+                        createSkeletonLine(bodyPositions["Torso"], bodyPositions["RightFoot"]) -- Торс к правой ноге
+                    end
                 end
             end
         end
