@@ -146,7 +146,7 @@ if true then
     do
         --// Combat
 
-        Combat:CreateSection("Rage")
+        Combat:CreateSection("Ragebot")
         Combat:CreateToggle({
             Name = "Ragebot",
             CurrentValue = false,
@@ -833,6 +833,47 @@ RunService.RenderStepped:Connect(function()
 end)
 
 
+local BacktrackData = {} -- Таблица для хранения прошлых позиций игроков
+local MaxBacktrackTime = 0.2 -- Максимальное время бектрека (200 миллисекунд)
+
+-- Обновление позиций игроков для бектрека
+RunService.RenderStepped:Connect(function()
+    if BackSettings.Enabled == true then -- Проверяем, включен ли бектрек
+        for _, Player in ipairs(Players:GetPlayers()) do
+            if Player.Character and Player.Character:FindFirstChild("Head") then
+                local HeadPosition = Player.Character.Head.Position
+                if not BacktrackData[Player] then
+                    BacktrackData[Player] = {}
+                end
+
+                -- Сохраняем текущую позицию вместе с меткой времени
+                table.insert(BacktrackData[Player], {position = HeadPosition, time = tick()})
+
+                -- Удаление старых позиций
+                for i = #BacktrackData[Player], 1, -1 do
+                    if tick() - BacktrackData[Player][i].time > MaxBacktrackTime then
+                        table.remove(BacktrackData[Player], i)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Функция для получения последней доступной позиции из бектрека
+function GetBacktrackPosition(Player)
+    if BackSettings.Enabled == true and BacktrackData[Player] then -- Проверка, включён ли бектрек
+        for i = #BacktrackData[Player], 1, -1 do
+            local Data = BacktrackData[Player][i]
+            if tick() - Data.time <= MaxBacktrackTime then
+                return Data.position
+            end
+        end
+    end
+    return nil
+end
+
+-- Основной цикл для рейджбота с бектрекингом
 RunService.RenderStepped:Connect(function()
     if RageSettings.Enabled == true then
         local LocalPlayer = Players.LocalPlayer
@@ -846,21 +887,38 @@ RunService.RenderStepped:Connect(function()
                 local Head = Character:FindFirstChild("Head")
                 local Humanoid = Character:FindFirstChild("Humanoid")
                 
-                -- Проверяем, что персонаж жив
+                -- Проверка, жив ли игрок
                 if Head and Humanoid and Humanoid.Health > 0 then
-                    -- Вычисление направления и расстояния до игрока
+                    -- Расчёт направления и расстояния до игрока
                     local Direction = (Head.Position - Camera.CFrame.Position).unit
                     local Distance = (Head.Position - Camera.CFrame.Position).Magnitude
 
                     local RaycastParams = RaycastParams.new()
                     RaycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
                     RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-                    
-                    -- Проверка на наличие препятствия
+
+                    -- Проверка наличия препятствия перед текущей позицией
                     local RaycastResult = workspace:Raycast(Camera.CFrame.Position, Direction * 500, RaycastParams)
-                    
-                    if RaycastResult and RaycastResult.Instance:IsDescendantOf(Player.Character) then
-                        -- Сравниваем дистанции, чтобы найти ближайшую цель
+
+                    -- Если текущая позиция игрока за стеной, проверяем бектрек
+                    if RaycastResult and not RaycastResult.Instance:IsDescendantOf(Player.Character) then
+                        if BackSettings.Enabled == true then -- Проверка состояния бектрека
+                            local BacktrackPosition = GetBacktrackPosition(Player)
+                            if BacktrackPosition then
+                                local BacktrackDirection = (BacktrackPosition - Camera.CFrame.Position).unit
+                                local BacktrackRaycastResult = workspace:Raycast(Camera.CFrame.Position, BacktrackDirection * 500, RaycastParams)
+
+                                -- Если бектрек не за стеной, стреляем по позиции из бектрека
+                                if BacktrackRaycastResult and BacktrackRaycastResult.Instance:IsDescendantOf(Player.Character) then
+                                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, BacktrackPosition)
+                                    mouse1press()
+                                    task.wait(0.05)
+                                    mouse1release()
+                                end
+                            end
+                        end
+                    else
+                        -- Если игрок не за стеной, стреляем по текущей позиции
                         if Distance < ClosestDistance then
                             ClosestDistance = Distance
                             ClosestTarget = Player
@@ -869,14 +927,15 @@ RunService.RenderStepped:Connect(function()
                 end
             end
         end
-        
+
         -- Если найдена ближайшая цель, наводимся на неё
         if RageSettings.Enabled and ClosestTarget and ClosestTarget.Character and ClosestTarget.Character:FindFirstChild("Head") then
             local Head = ClosestTarget.Character.Head
-            -- Используем CFrame.lookAt для точного прицеливания
+            -- Наводимся на голову
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Head.Position)
+            -- Стреляем по цели
             mouse1press()
-            task.wait(0.05)  -- Уменьшаем время задержки для более быстрой стрельбы
+            task.wait(0.1)  -- Увеличено время задержки для надёжной стрельбы
             mouse1release()
         end
     end
