@@ -666,6 +666,8 @@ RunService.RenderStepped:Connect(function()
     task.wait()
 end)
 
+
+
 RunService.RenderStepped:Connect(function()
     if _G.NoFireDamage == true then
         game:GetService("ReplicatedStorage").Events.BURNME:Destroy()
@@ -833,6 +835,45 @@ RunService.RenderStepped:Connect(function()
 end)
 
 
+local BacktrackData = {} -- Таблица для хранения прошлых позиций
+local MaxTime = 0.2 -- Максимальное время хранения позиций (200 миллисекунд)
+
+-- Обновляем позиции игроков для бектрека
+RunService.RenderStepped:Connect(function()
+    for _, Player in ipairs(Players:GetPlayers()) do
+        if Player.Character and Player.Character:FindFirstChild("Head") then
+            local HeadPosition = Player.Character.Head.Position
+            if not BacktrackData[Player] then
+                BacktrackData[Player] = {}
+            end
+
+            -- Сохраняем текущую позицию вместе с меткой времени
+            table.insert(BacktrackData[Player], {position = HeadPosition, time = tick()})
+
+            -- Удаляем старые позиции
+            for i = #BacktrackData[Player], 1, -1 do
+                if tick() - BacktrackData[Player][i].time > MaxTime then
+                    table.remove(BacktrackData[Player], i)
+                end
+            end
+        end
+    end
+end)
+
+-- Функция для получения позиции для бектрека
+function GetBacktrackPosition(Player)
+    if BacktrackData[Player] then
+        for i = #BacktrackData[Player], 1, -1 do
+            local Data = BacktrackData[Player][i]
+            if tick() - Data.time <= MaxTime then
+                return Data.position
+            end
+        end
+    end
+    return nil
+end
+
+-- Основной цикл для рейджбота с проверкой бектрека
 RunService.RenderStepped:Connect(function()
     if RageSettings.Enabled == true then
         local LocalPlayer = Players.LocalPlayer
@@ -855,12 +896,29 @@ RunService.RenderStepped:Connect(function()
                     local RaycastParams = RaycastParams.new()
                     RaycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
                     RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-                    
-                    -- Проверка на наличие препятствия
+
+                    -- Проверка на наличие препятствия для текущей позиции головы
                     local RaycastResult = workspace:Raycast(Camera.CFrame.Position, Direction * 500, RaycastParams)
-                    
-                    if RaycastResult and RaycastResult.Instance:IsDescendantOf(Player.Character) then
-                        -- Сравниваем дистанции, чтобы найти ближайшую цель
+
+                    -- Если текущее положение персонажа за препятствием, проверяем бектрек
+                    if RaycastResult and not RaycastResult.Instance:IsDescendantOf(Player.Character) then
+                        -- Получаем последнюю доступную позицию бектрека
+                        local BacktrackPosition = GetBacktrackPosition(Player)
+                        if BacktrackPosition then
+                            local BacktrackDirection = (BacktrackPosition - Camera.CFrame.Position).unit
+                            local BacktrackRaycastResult = workspace:Raycast(Camera.CFrame.Position, BacktrackDirection * 500, RaycastParams)
+                            
+                            -- Если бектрек позиция не за стеной
+                            if BacktrackRaycastResult and BacktrackRaycastResult.Instance:IsDescendantOf(Player.Character) then
+                                -- Стреляем по позиции бектрека
+                                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, BacktrackPosition)
+                                mouse1press()
+                                task.wait(0.05)
+                                mouse1release()
+                            end
+                        end
+                    elseif RaycastResult and RaycastResult.Instance:IsDescendantOf(Player.Character) then
+                        -- Если текущая позиция видима, продолжаем обычную стрельбу
                         if Distance < ClosestDistance then
                             ClosestDistance = Distance
                             ClosestTarget = Player
@@ -876,7 +934,7 @@ RunService.RenderStepped:Connect(function()
             -- Используем CFrame.lookAt для точного прицеливания
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Head.Position)
             mouse1press()
-            task.wait(0.05)  -- Уменьшаем время задержки для более быстрой стрельбы
+            task.wait(0.05) -- Уменьшаем время задержки для более быстрой стрельбы
             mouse1release()
         end
     end
