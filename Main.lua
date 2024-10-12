@@ -56,6 +56,7 @@ local AimSettings = {
 local ESPSettings = {
     Enabled = false,
     UseTeamColor = false,
+    BackTrackChams = false,
     ChamsColor = Color3.fromRGB(200,200,200)
 }
 
@@ -607,6 +608,15 @@ end)
             end,
         })
 
+        Visuals:CreateToggle({
+            Name = "BackTrack Chams",
+            CurrentValue = false,
+            Flag = "BackTrackChams",
+            Callback = function(Value)
+                ESPSettings.BackTrackChams = Value
+            end,
+        })
+
         Visuals:CreateColorPicker({
             Name = "Chams Color",
             Color = Color3.fromRGB(200,200,200),
@@ -1095,6 +1105,7 @@ RunService.RenderStepped:Connect(function()
     task.wait()
 end)
 
+local ESPBacktrackColor = Color3.fromRGB(0, 255, 0) -- Цвет для отображения бектрека
 RunService.RenderStepped:Connect(function()
     local LocalPlayer = Players.LocalPlayer
     local Camera = workspace.CurrentCamera
@@ -1104,6 +1115,7 @@ RunService.RenderStepped:Connect(function()
             local Character = Player.Character
             local Highlight = Character:FindFirstChild("Highlight") or Instance.new("Highlight", Character)
 
+            -- Основной ESP для текущих позиций
             if ESPSettings.Enabled then
                 local Head = Character:FindFirstChild("Head")
                 if Head then
@@ -1127,6 +1139,26 @@ RunService.RenderStepped:Connect(function()
             else
                 if Highlight then
                     Highlight:Destroy()
+                end
+            end
+
+            -- Отображение бектрека (исторические позиции)
+            if BackSettings.Enabled and BacktrackData[Player] then
+                for i, BacktrackPosition in ipairs(BacktrackData[Player]) do
+                    local BacktrackHighlight = Instance.new("Part")
+                    BacktrackHighlight.Size = Vector3.new(0.5, 0.5, 0.5)
+                    BacktrackHighlight.Anchored = true
+                    BacktrackHighlight.CanCollide = false
+                    BacktrackHighlight.Position = BacktrackPosition.position
+                    BacktrackHighlight.Color = ESPBacktrackColor
+                    BacktrackHighlight.Parent = workspace
+                    
+                    -- Удаление Highlight'ов через некоторое время
+                    delay(MaxBacktrackTime, function()
+                        if BacktrackHighlight then
+                            BacktrackHighlight:Destroy()
+                        end
+                    end)
                 end
             end
         end
