@@ -895,29 +895,40 @@ RunService.RenderStepped:Connect(function()
         for _, Player in ipairs(Players:GetPlayers()) do
             if Player.Character and Player ~= LocalPlayer and Player.Team ~= LocalPlayer.Team then
                 local Character = Player.Character
+                local Head = Character:FindFirstChild("Head")
                 local Humanoid = Character:FindFirstChild("Humanoid")
                 
                 -- Проверка, жив ли игрок
-                if Humanoid and Humanoid.Health > 0 then
-                    -- Проверяем все части тела
-                    for _, BodyPart in ipairs(Character:GetChildren()) do
-                        if BodyPart:IsA("BasePart") then
-                            local Distance = (BodyPart.Position - Camera.CFrame.Position).Magnitude
-                            local RaycastParams = RaycastParams.new()
-                            RaycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
-                            RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                if Head and Humanoid and Humanoid.Health > 0 then
+                    local Distance = (Head.Position - Camera.CFrame.Position).Magnitude
+                    local RaycastParams = RaycastParams.new()
+                    RaycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                    RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 
-                            -- Проверка, находится ли цель за препятствием
-                            local Direction = (BodyPart.Position - Camera.CFrame.Position).unit
-                            local RaycastResult = workspace:Raycast(Camera.CFrame.Position, Direction * 500, RaycastParams)
+                    -- Проверка, находится ли цель за препятствием
+                    local RaycastResult = workspace:Raycast(Camera.CFrame.Position, (Head.Position - Camera.CFrame.Position).unit * 500, RaycastParams)
 
-                            -- Если цель не за стеной и это не сам BodyPart, то мы можем стрелять
-                            if not RaycastResult or (RaycastResult and not RaycastResult.Instance:IsDescendantOf(Player.Character)) then
-                                if Distance < ClosestDistance then
-                                    ClosestDistance = Distance
-                                    ClosestTarget = BodyPart
+                    -- Если цель за стеной, проверяем бектрек
+                    if RaycastResult and not RaycastResult.Instance:IsDescendantOf(Player.Character) then
+                        if BackSettings.Enabled then
+                            local BacktrackPosition = GetBestBacktrackPosition(Player)
+                            if BacktrackPosition then
+                                local BacktrackRaycastResult = workspace:Raycast(Camera.CFrame.Position, (BacktrackPosition - Camera.CFrame.Position).unit * 500, RaycastParams)
+
+                                -- Если бектрек не за стеной, стреляем по позиции из бектрека
+                                if BacktrackRaycastResult and BacktrackRaycastResult.Instance:IsDescendantOf(Player.Character) then
+                                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, BacktrackPosition)
+                                    mouse1press()
+                                    task.wait(0.05)
+                                    mouse1release()
                                 end
                             end
+                        end
+                    else
+                        -- Если цель не за стеной, стреляем по текущей позиции
+                        if Distance < ClosestDistance then
+                            ClosestDistance = Distance
+                            ClosestTarget = Player
                         end
                     end
                 end
@@ -925,8 +936,9 @@ RunService.RenderStepped:Connect(function()
         end
 
         -- Если найдена ближайшая цель, стреляем по ней
-        if RageSettings.Enabled and ClosestTarget then
-            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, ClosestTarget.Position)
+        if RageSettings.Enabled and ClosestTarget and ClosestTarget.Character and ClosestTarget.Character:FindFirstChild("Head") then
+            local Head = ClosestTarget.Character.Head
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Head.Position)
             mouse1press()
             task.wait(0.05) -- Время ожидания перед следующим выстрелом
             mouse1release()
@@ -934,6 +946,7 @@ RunService.RenderStepped:Connect(function()
     end
     task.wait()
 end)
+
 
 RunService.RenderStepped:Connect(function()
     if AimSettings.Enabled == true then            
