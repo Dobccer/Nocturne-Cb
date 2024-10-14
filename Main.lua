@@ -908,10 +908,11 @@ RunService.RenderStepped:Connect(function()
                             RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 
                             -- Проверка, находится ли цель за препятствием
-                            local RaycastResult = workspace:Raycast(Camera.CFrame.Position, (BodyPart.Position - Camera.CFrame.Position).unit * 500, RaycastParams)
+                            local Direction = (BodyPart.Position - Camera.CFrame.Position).unit
+                            local RaycastResult = workspace:Raycast(Camera.CFrame.Position, Direction * 500, RaycastParams)
 
-                            -- Если цель не за стеной, стреляем по ней
-                            if not RaycastResult or not RaycastResult.Instance:IsDescendantOf(Player.Character) then
+                            -- Если цель не за стеной и это не сам BodyPart, то мы можем стрелять
+                            if not RaycastResult or (RaycastResult and not RaycastResult.Instance:IsDescendantOf(Player.Character)) then
                                 if Distance < ClosestDistance then
                                     ClosestDistance = Distance
                                     ClosestTarget = BodyPart
